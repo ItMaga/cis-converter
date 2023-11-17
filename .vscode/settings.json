@@ -1,3 +1,9 @@
 {
+    "editor.formatOnSave": true,
+    "editor.codeActionsOnSave": {
+      "source.fixAll.eslint": true,
+    },
+    "eslint.validate": ["vue", "ts", "js"],
     "typescript.tsdk": "node_modules/typescript/lib"
-}
+  }
+  
