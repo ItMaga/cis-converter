@@ -1,7 +1,8 @@
 <template>
   <main class="app">
     <header class="app__header">
-      <RouterLink to="/">
+      <RouterLink to="/" class="app__logo">
+        <img src="@/assets/logo.svg" alt="CI's converter" />
         <h1>CI's converter</h1>
       </RouterLink>
       <RouterLink to="/">Main</RouterLink>
@@ -26,5 +27,10 @@
   column-gap: 8px;
   align-items: center;
   justify-items: flex-end;
+}
+.app__logo {
+  display: flex;
+  align-items: center;
+  column-gap: 16px;
 }
 </style>
