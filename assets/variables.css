@@ -2,4 +2,11 @@
     --color-primary: #cd8c2a;
     --color-secondary: #1c085d;
     --color-error: #E02626;
+
+    --color-text: var(--color-secondary);
+
+    --padding-md: 1rem;
+
+    --font-size-md: 1rem;
+    --font-size-lg: 1.5rem;
 }

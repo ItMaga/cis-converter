@@ -21,12 +21,19 @@
 </template>
 
 <style scoped>
+.app {
+  display: grid;
+  grid-template-rows: auto 1fr;
+  padding: 0 var(--padding-md);
+  min-height: 100vh;
+}
 .app__header {
   display: grid;
   grid-template-columns: auto 1fr auto auto;
   column-gap: 8px;
   align-items: center;
   justify-items: flex-end;
+  height: 64px;
 }
 .app__logo {
   display: flex;
