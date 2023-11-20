@@ -9,4 +9,6 @@
 
     --font-size-md: 1rem;
     --font-size-lg: 1.5rem;
+
+    --shadow-header: 0 0 10px rgba(0, 0, 0, 0.2);
 }
