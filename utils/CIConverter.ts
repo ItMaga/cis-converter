@@ -34,25 +34,63 @@ export default class CIConverter {
     }
   }
 
+  private convertGithubConditionToGitlab(condition: string): string {
+    if (condition.startsWith("contains") && condition.includes("github.ref")) {
+      const notAlphaRegex = /[^a-zA-Z]/g;
+      const refTarget = condition
+        .split(",")[1]
+        .trim()
+        .replaceAll(notAlphaRegex, "");
+      return `$CI_COMMIT_REF_NAME =~ /${refTarget}/`;
+    }
+    return condition;
+  }
   private convertGithubToGitlab() {
     const { code } = this.source;
 
-    const stageDetails = Object.keys(code.jobs).reduce<Record<string, unknown>>(
+    let images: Record<string, unknown> = {};
+    const jobsToStages = Object.keys(code.jobs).reduce<Record<string, unknown>>(
       (acc, stage) => {
         const job = code.jobs[stage];
+
         job.stage = stage;
-        job.script = job.steps.map((step: Record<string, unknown>) => step.run);
+
+        job.script = job.steps
+          .map((step: Record<string, unknown>) => step.run)
+          .filter(Boolean);
+
+        if ("container" in job) {
+          images = {
+            default: {
+              image: job.container,
+            },
+          };
+          delete job.container;
+        }
+
+        if ("if" in job) {
+          job.rules = [
+            {
+              if: this.convertGithubConditionToGitlab(job.if),
+            },
+          ];
+          delete job.if;
+        }
+
         delete job["runs-on"];
         delete job.steps;
-        acc[stage] = job;
+
+        acc[`${stage}-job`] = job;
+
         return acc;
       },
       {},
     );
 
     const gitlab = {
+      ...images,
       stages: Object.keys(code.jobs),
-      ...stageDetails,
+      ...jobsToStages,
       variables: code.env,
       ...code,
     };
