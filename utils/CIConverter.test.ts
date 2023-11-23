@@ -96,4 +96,54 @@ deploy-job:
   rules:
     - if: $CI_COMMIT_REF_NAME =~ /staging/\n`);
   });
+  test("2.1 from GitLab CI to GitHub Actions", () => {
+    const ci = {
+      type: "gitlab" as const,
+      code: `
+      default:
+        image: golang:alpine
+      
+      stages:
+        - build
+        - deploy
+      
+      build:
+        stage: build
+        script:
+          - apk update
+          - go build -o bin/hello
+        artifacts:
+          paths:
+            - bin/hello
+          expire_in: 1 week
+      
+      deploy:
+        stage: deploy
+        script:
+          - echo "Deploying to Staging"
+          - scp bin/hello remoteuser@remotehost:/remote/directory
+        rules:
+          - if: $CI_COMMIT_BRANCH == 'staging'
+      `,
+    };
+
+    const converter = new CIConverter(ci, "github");
+    const result = converter.convert();
+    expect(result).toBe(`on:
+  - push
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    container: golang:alpine
+    steps:
+      - run: apk update
+      - run: go build -o bin/hello
+  deploy:
+    if: contains(github.ref, 'staging')
+    runs-on: ubuntu-latest
+    container: golang:alpine
+    steps:
+      - run: echo "Deploying to Staging"
+      - run: scp bin/hello remoteuser@remotehost:/remote/directory\n`);
+  });
 });

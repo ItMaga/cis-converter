@@ -9,6 +9,9 @@ type Source = {
 export default class CIConverter {
   private source: Source;
   private target: SupportedCI;
+  private variablesMap: Record<string, string> = {
+    $CI_COMMIT_BRANCH: "github.ref",
+  } as const;
 
   constructor(
     source: { type: SupportedCI; code: string },
@@ -100,23 +103,52 @@ export default class CIConverter {
     return stringify(gitlab);
   }
 
+  private convertGitlabConditionToGithub(condition: string): string {
+    if (condition.includes("==")) {
+      const glVariable = condition.split("==")[0].trim();
+      const glValue = condition.split("==")[1].trim();
+
+      const ghVariable = this.variablesMap[glVariable];
+
+      return `contains(${ghVariable}, ${glValue})`;
+    }
+    return condition;
+  }
   private convertGitlabToGithub() {
     const { code } = this.source;
 
     const stages = code.stages as string[];
+    const images = code.default as Record<string, unknown> | undefined;
     const jobsFromStages = stages.reduce<Record<string, unknown>>(
       (acc, stage) => {
         const job = code[stage];
+
+        if (job.rules) {
+          job.if = this.convertGitlabConditionToGithub(job.rules[0].if);
+          delete job.rules;
+        }
+
         job["runs-on"] = "ubuntu-latest";
+
+        if (images) {
+          job.container = images.image;
+        }
+
         job.steps = job.script.map((run: string) => ({ run }));
+
         delete job.script;
         delete job.stage;
-        acc[stage] = job;
         delete code[stage];
+        delete job.artifacts;
+
+        acc[stage] = job;
+
         return acc;
       },
       {},
     );
+    delete code.stages;
+    delete code.default;
 
     const github = {
       on: ["push"],
@@ -124,8 +156,7 @@ export default class CIConverter {
       env: code.variables,
       ...code,
     };
-    delete github.stages;
-    delete github.variables;
+    delete code.variables;
 
     return stringify(github);
   }
