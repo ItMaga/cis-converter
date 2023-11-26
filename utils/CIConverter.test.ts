@@ -96,7 +96,7 @@ deploy-job:
   rules:
     - if: $CI_COMMIT_REF_NAME =~ /staging/\n`);
   });
-  test("2.1 from GitLab CI to GitHub Actions", () => {
+  test("2.2 from GitLab CI to GitHub Actions", () => {
     const ci = {
       type: "gitlab" as const,
       code: `
