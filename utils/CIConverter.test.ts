@@ -78,17 +78,17 @@ jobs:
 
     const converter = new CIConverter(ci, "gitlab");
     const result = converter.convert();
-    expect(result).toBe(`default:
-  image: golang:alpine
-stages:
+    expect(result).toBe(`stages:
   - build
   - deploy
 build-job:
+  image: golang:alpine
   stage: build
   script:
     - apk update
     - go build -o bin/hello
 deploy-job:
+  image: golang:alpine
   stage: deploy
   script:
     - echo "Deploying to Staging"
@@ -145,5 +145,44 @@ jobs:
     steps:
       - run: echo "Deploying to Staging"
       - run: scp bin/hello remoteuser@remotehost:/remote/directory\n`);
+  });
+
+  test("3.1 from GitHub Actions to GitLab CI", () => {
+    const ci = {
+      type: "github" as const,
+      code: `
+      on: [push]
+      jobs:
+        python-version:
+          runs-on: ubuntu-latest
+          container: python:latest
+          steps:
+            - run: python --version
+        java-version:
+          if: contains( github.ref, 'staging')
+          runs-on: ubuntu-latest
+          container: openjdk:latest
+          steps:
+            - run: java -version
+      `,
+    };
+
+    const converter = new CIConverter(ci, "gitlab");
+    const result = converter.convert();
+    expect(result).toBe(`stages:
+  - python-version
+  - java-version
+python-version-job:
+  image: python:latest
+  stage: python-version
+  script:
+    - python --version
+java-version-job:
+  image: openjdk:latest
+  stage: java-version
+  script:
+    - java -version
+  rules:
+    - if: $CI_COMMIT_REF_NAME =~ /staging/\n`);
   });
 });

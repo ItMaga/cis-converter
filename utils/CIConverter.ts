@@ -51,25 +51,20 @@ export default class CIConverter {
   private convertGithubToGitlab() {
     const { code } = this.source;
 
-    let images: Record<string, unknown> = {};
     const jobsToStages = Object.keys(code.jobs).reduce<Record<string, unknown>>(
       (acc, stage) => {
         const job = code.jobs[stage];
+
+        if ("container" in job) {
+          job.image = job.container;
+          delete job.container;
+        }
 
         job.stage = stage;
 
         job.script = job.steps
           .map((step: Record<string, unknown>) => step.run)
           .filter(Boolean);
-
-        if ("container" in job) {
-          images = {
-            default: {
-              image: job.container,
-            },
-          };
-          delete job.container;
-        }
 
         if ("if" in job) {
           job.rules = [
@@ -91,7 +86,6 @@ export default class CIConverter {
     );
 
     const gitlab = {
-      ...images,
       stages: Object.keys(code.jobs),
       ...jobsToStages,
       variables: code.env,
