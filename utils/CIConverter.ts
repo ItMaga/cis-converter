@@ -126,6 +126,9 @@ export default class CIConverter {
 
         if (images) {
           job.container = images.image;
+        } else if ("image" in job) {
+          job.container = job.image;
+          delete job.image;
         }
 
         job.steps = job.script.map((run: string) => ({ run }));

@@ -185,4 +185,42 @@ java-version-job:
   rules:
     - if: $CI_COMMIT_REF_NAME =~ /staging/\n`);
   });
+  test("3.2 from GitLab CI to GitHub Actions", () => {
+    const ci = {
+      type: "gitlab" as const,
+      code: `
+      stages:
+        - python-version
+        - java-version
+      python-version:
+        image: python:latest
+        script:
+          - python --version
+
+      java-version:
+        image: openjdk:latest
+        rules:
+          - if: $CI_COMMIT_BRANCH == 'staging'
+        script:
+          - java -version
+    `,
+    };
+
+    const converter = new CIConverter(ci, "github");
+    const result = converter.convert();
+    expect(result).toBe(`on:
+  - push
+jobs:
+  python-version:
+    runs-on: ubuntu-latest
+    container: python:latest
+    steps:
+      - run: python --version
+  java-version:
+    if: contains(github.ref, 'staging')
+    runs-on: ubuntu-latest
+    container: openjdk:latest
+    steps:
+      - run: java -version\n`);
+  });
 });
