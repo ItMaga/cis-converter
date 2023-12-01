@@ -51,6 +51,9 @@ export default class CIConverter {
   private convertGithubToGitlab() {
     const { code } = this.source;
 
+    const hiddenJobs = {
+      name: ".parallel-hidden-job",
+    };
     const jobsToStages = Object.keys(code.jobs).reduce<Record<string, unknown>>(
       (acc, stage) => {
         const job = code.jobs[stage];
@@ -58,6 +61,20 @@ export default class CIConverter {
         if ("container" in job) {
           job.image = job.container;
           delete job.container;
+        }
+
+        if ("strategy" in job && "matrix" in job.strategy) {
+          for (const [key, value] of Object.entries(job.strategy.matrix)) {
+            const keyUpper = key.toUpperCase();
+            if (hiddenJobs[keyUpper]) {
+              hiddenJobs[keyUpper].add(...value);
+            } else {
+              hiddenJobs[keyUpper] = new Set(value);
+            }
+          }
+          job.extends = hiddenJobs.name;
+
+          delete job.strategy;
         }
 
         job.stage = stage;
@@ -87,6 +104,16 @@ export default class CIConverter {
 
     const gitlab = {
       stages: Object.keys(code.jobs),
+      ...(Object.keys(hiddenJobs).length > 1 && {
+        [hiddenJobs.name]: {
+          parallel: {
+            matrix: {
+              ...hiddenJobs,
+              name: undefined,
+            },
+          },
+        },
+      }),
       ...jobsToStages,
       variables: code.env,
       ...code,
